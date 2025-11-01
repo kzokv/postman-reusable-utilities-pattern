@@ -1,0 +1,253 @@
+# Postman Collections and Environments
+
+This directory contains exported Postman collections, environments, and global variables for the ExampleApp API testing.
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Directory Structure](#directory-structure)
+- [Contents](#contents)
+- [Importing into Postman](#importing-into-postman)
+- [Environment Variables](#environment-variables)
+- [Global Variables](#global-variables)
+- [Utilities Architecture](#utilities-architecture)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Maintenance](#maintenance)
+- [Documentation](#documentation)
+
+---
+
+## Quick Start
+
+### First-Time Setup (5 minutes)
+
+1. **Import Collection**
+   - Open Postman
+   - Click **Import** in the top left
+   - Select `collections/ExampleApp_QA.postman_collection.json`
+   - Click **Import**
+
+2. **Import Environment**
+   - Open Postman
+   - Click **Import** in the top left
+   - Select environment file from `environments/` directory (e.g., `qa.postman_environment.json`)
+   - Click **Import**
+   - Select the environment from the dropdown in the top right to activate it
+
+3. **Import Globals** (if needed)
+   - Open Postman
+   - Click **Import** in the top left
+   - Select `globals/workspace.postman_globals.json`
+   - Click **Import**
+
+4. **Get Authentication Token**
+   - Navigate to your user folder (e.g., "SampleUser")
+   - Open **Setup** → **Get ID Token**
+   - Click **Send**
+   - Token will be stored in `{{id_token}}` collection variable
+
+5. **Run Your First Request**
+   - Select any request in your folder
+   - Click **Send**
+   - All requests automatically use `{{id_token}}` for authentication
+
+> **Tip:** See [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md) for detailed architecture documentation.
+
+---
+
+## Directory Structure
+
+```
+postman/
+├── collections/          # Postman API collections
+├── environments/         # Environment configurations
+├── globals/             # Global variables
+└── README.md            # This file
+```
+
+## Contents
+
+### Collections
+- **ExampleApp_QA.postman_collection.json** - Main QA collection with utility functions and API requests
+  - See [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md) for detailed documentation on the utility architecture and usage patterns
+
+### Environments
+- **demo.postman_environment.json** - Demo environment
+- **dev.postman_environment.json** - Development environment
+- **qa.postman_environment.json** - QA environment
+- **prod.postman_environment.json** - Production environment
+
+> **Note:** API endpoint URLs are configured in environment files. Actual endpoints are masked in documentation for security.
+
+### Globals
+- **workspace.postman_globals.json** - Global variables shared across collections
+
+---
+
+## Importing into Postman
+
+### Import Collections
+1. Open Postman
+2. Click **Import** in the top left
+3. Select the collection file from `collections/` directory
+4. Click **Import**
+
+### Import Environments
+1. Open Postman
+2. Click **Import** in the top left
+3. Select the environment file(s) from `environments/` directory
+4. Click **Import**
+5. Select the environment from the dropdown in the top right to activate it
+
+### Import Globals
+1. Open Postman
+2. Click **Import** in the top left
+3. Select the globals file from `globals/` directory
+4. Click **Import**
+
+---
+
+## Environment Variables
+
+Each environment contains configuration specific to that environment:
+
+| Environment | Base URL Pattern | Use Case |
+|------------|------------------|----------|
+| **demo** | `https://***-api.***exampleapp.***net` | Demo/staging testing |
+| **dev** | `https://***-api.***exampleapp.***io` | Development testing |
+| **qa** | `https://***-api.***exampleapp.***io` | QA testing |
+| **prod** | `https://api.***exampleapp.***net` | Production (use with caution) |
+
+> **Note:** Actual endpoint URLs are masked for security. Check environment files for real values.
+
+### Environment-Specific Variables
+
+All environments include:
+- **`api_url`** - Base API URL for the environment
+
+QA environment additionally includes:
+- **`api_server_url`** - Additional server URL for QA environment
+- **`duration`** - Duration parameter
+
+### Switching Environments
+
+1. Select environment from the dropdown in the top-right corner of Postman
+2. The collection utilities automatically detect the selected environment
+3. Re-run "Setup/Get ID Token" if you switch environments to get a new token
+
+---
+
+## Global Variables
+
+The globals file contains shared configuration including:
+- API endpoint paths (GraphQL, REST, etc.)
+- Authentication secrets
+- Third-party API endpoints
+
+**Note:** The globals file contains sensitive information. Ensure it's properly secured and not committed to public repositories.
+
+---
+
+## Utilities Architecture
+
+The ExampleApp_QA collection uses a **three-tier utility architecture** for reusability and flexibility:
+
+### Tier 1: Collection-Level Utilities
+Global utilities defined in the collection's pre-request script (available to all folders):
+- **`test_utils`** - Test validation and assertion helpers
+- **`auth_utils`** - AWS Cognito authentication utilities
+- **`utils`** - General utility functions (timestamps, random values, environment detection)
+
+### Tier 2: User Folder-Level Configuration
+Each user folder defines its own environment-specific configuration:
+- **`env_data`** - Environment configuration (region, client_id, password) per environment
+- **`env_users`** - User accounts organized by environment and test_user_type
+- **`meta_data`** - Wrapper object providing access to user definitions
+
+### Tier 3: Request-Level Usage
+Individual requests use the utilities for authentication, test data generation, and validation.
+
+### Getting Started with Utilities
+
+1. **Select Environment**: Choose an environment from the Postman UI dropdown (QA, Demo, Prod, etc.)
+2. **Run Setup/Get ID Token**: Execute the "Get ID Token" request in your folder's Setup folder
+3. **Use Token**: All subsequent requests automatically use the `{{id_token}}` collection variable
+
+For detailed documentation, architecture diagrams, and code examples, see **[UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md)**.
+
+---
+
+## Best Practices
+
+1. **Version Control**: Keep this directory in version control to track changes to API tests
+2. **Environment Selection**: Always verify you're using the correct environment before running tests
+3. **Security**: Be careful with secrets in globals file - consider using Postman's secret management for sensitive data
+4. **Updates**: When making changes in Postman, re-export and commit the updated files
+5. **Utility Usage**: Follow the three-tier architecture pattern when adding new user folders (see [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md) for examples)
+6. **Token Management**: Run "Setup/Get ID Token" before executing test requests to ensure authentication tokens are current
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Issue: "Invalid token" or "Unauthorized" errors
+**Solution:**
+- Run "Setup/Get ID Token" request again (tokens expire)
+- Verify you've selected the correct environment
+- Check that `{{id_token}}` is set in collection variables (View → Show Postman Console)
+
+#### Issue: "Cannot find meta_data" error
+**Solution:**
+- Ensure you're using a request within a user folder (e.g., "SampleUser", "User1")
+- Verify the folder has a pre-request script that defines `meta_data`
+- See [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md#example-1-sampleuser-folder-level-configuration) for setup
+
+#### Issue: Environment-specific error (e.g., wrong region)
+**Solution:**
+- Check that `env_data` in your folder pre-request script matches the selected environment
+- Verify environment selection in Postman UI dropdown
+- Ensure client_id matches the environment you're using
+
+#### Issue: Import errors
+**Solution:**
+- Ensure you're importing the correct file format (`.postman_collection.json`, `.postman_environment.json`)
+- Check Postman version compatibility (collection schema v2.1.0)
+- Try importing files one at a time
+
+#### Issue: Connection errors to API endpoints
+**Solution:**
+- Verify the environment is correctly selected and imported
+- Check that `api_url` is set correctly in the environment
+- Ensure network connectivity and firewall settings allow access
+- Verify endpoint URLs in environment files match your target environment
+
+### Getting Help
+
+- Check [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md) for detailed architecture documentation
+- Review the collection's pre-request script for available utilities
+- Contact the team for access to required globals/secrets
+
+---
+
+## Maintenance
+
+- When adding new collections, place them in `collections/`
+- When adding new environments, place them in `environments/`
+- Use consistent naming: `*.postman_collection.json` and `*.postman_environment.json`
+- When adding new user folders, follow the utility architecture pattern documented in [UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md)
+
+---
+
+## Documentation
+
+- **[UTILITIES_DIAGRAM.md](UTILITIES_DIAGRAM.md)** - Complete documentation of the utility architecture, including:
+  - Architecture overview and three-tier design
+  - Detailed authentication flow
+  - Real code examples with SampleUser folder as reference
+  - Utility function reference
+  - Best practices for adding new user folders
+  - Quick reference guide
+  - Troubleshooting guide
