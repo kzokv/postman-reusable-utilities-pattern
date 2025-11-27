@@ -13,7 +13,9 @@
 9. [Best Practices](#best-practices)
 10. [Troubleshooting](#troubleshooting)
 11. [Migration Guide](#migration-guide)
-12. [Glossary](#glossary)
+12. [Loop Pattern with pm.sendRequest](#loop-pattern-with-pmsendrequest)
+13. [Port Forwarding & Local Logging](#port-forwarding--local-logging)
+14. [Glossary](#glossary)
 
 ---
 
@@ -54,14 +56,14 @@ const emails = utils.get_random_emails({ count: 5 });
 
 ### Function Quick Lookup
 
-| Need | Use This |
-|------|----------|
-| Authenticate user | `auth_utils.aws_congnito()` |
-| Validate HTTP status | `test_utils.validate_resp_code()` |
-| Get environment name | `utils.get_current_env()` |
-| Generate timestamp | `utils.get_iso8601_timestamp()` |
-| Generate random emails | `utils.get_random_emails()` |
-| Check if token expired | Run "Get ID Token" again |
+| Need                   | Use This                          |
+| ---------------------- | --------------------------------- |
+| Authenticate user      | `auth_utils.aws_congnito()`       |
+| Validate HTTP status   | `test_utils.validate_resp_code()` |
+| Get environment name   | `utils.get_current_env()`         |
+| Generate timestamp     | `utils.get_iso8601_timestamp()`   |
+| Generate random emails | `utils.get_random_emails()`       |
+| Check if token expired | Run "Get ID Token" again          |
 
 ---
 
@@ -122,6 +124,33 @@ This allows the same script to work across all environments without modification
 ---
 
 ## Architecture Diagram
+
+### High-Level Data Flow
+
+```mermaid
+flowchart LR
+    User([User]) -->|Selects Env| Postman
+    
+    subgraph Postman[Postman Collection]
+        direction TB
+        PreReq[Pre-request Script]
+        Request[API Request]
+        Test[Test Script]
+        
+        PreReq -->|Auth & Setup| Request
+        Request -->|Response| Test
+    end
+    
+    subgraph External[External Services]
+        Cognito[AWS Cognito]
+        API[App API]
+    end
+    
+    PreReq <-->|Auth| Cognito
+    Request <-->|Traffic| API
+```
+
+### Component Interaction
 
 ```mermaid
 graph TB
@@ -446,24 +475,24 @@ Or in headers:
 
 ### Summary
 
-| Utility | Total Usages | Unique Paths | Functions Available |
-|---------|--------------|--------------|---------------------|
-| `test_utils` | 231 | 231 | getAutomationTestDataLeftOver, post_action_getPolicy_forFilters, print_user_policies, validate_resp_code |
-| `utils` | 15 | 15 | get_iso8601_timestamp, get_random_emails, get_unix_timestamp_with_ms, random_digits |
-| `auth_utils` | 6 | 6 | aws_congnito |
-| `meta_data` | Defined in 4 folders | 4 folders | `env_users()` |
+| Utility      | Total Usages         | Unique Paths | Functions Available                                                                                      |
+| ------------ | -------------------- | ------------ | -------------------------------------------------------------------------------------------------------- |
+| `test_utils` | 231                  | 231          | getAutomationTestDataLeftOver, post_action_getPolicy_forFilters, print_user_policies, validate_resp_code |
+| `utils`      | 15                   | 15           | get_iso8601_timestamp, get_random_emails, get_unix_timestamp_with_ms, random_digits                      |
+| `auth_utils` | 6                    | 6            | aws_congnito                                                                                             |
+| `meta_data`  | Defined in 4 folders | 4 folders    | `env_users()`                                                                                            |
 
 ### Detailed Usage by Folder
 
 #### SampleUser (Example User Folder)
 
-| Utility | Usage Count | Functions Used | Locations |
-|---------|-------------|-----------------|-----------|
-| `auth_utils` | 2 | aws_congnito | Setup/Get ID Token, playground/URLsBlockedAccessLogsLoop/[PmScripts]CreateLogs |
-| `utils` | 10 | get_iso8601_timestamp, get_random_emails, get_unix_timestamp_with_ms, random_digits | AC-5717_PolicyV2 support Disable on/UpdatePolicyDisableAt/[UpdatePolicy]diablePolicy_UnixTimestamp, AC-5717_PolicyV2 support Disable on/CreatePolicyPolicyDisableAt/createPolicyV2_null, AC-5717_PolicyV2 support Disable on/CreatePolicyPolicyDisableAt/createPolicyV2_UnixTimestamp ... (10 total) |
-| `test_utils` | 136 | validate_resp_code, post_action_getPolicy_forFilters, print_user_policies, getAutomationTestDataLeftOver | MTK_GetUserEntryInfo/GetUserEntry, MTK_GetUserEntryInfo/ListPolicyV2, MTK_GetUserEntryInfo/GetPolicyV2 ... (136 total) |
-| `meta_data` | 2 | env_users | Setup/Get ID Token, playground/URLsBlockedAccessLogsLoop/[PmScripts]CreateLogs |
-| `meta_data`` | Defined | `env_users()` | Folder Pre-request Script |
+| Utility      | Usage Count | Functions Used                                                                                           | Locations                                                                                                                                                                                                                                                                                            |
+| ------------ | ----------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth_utils` | 2           | aws_congnito                                                                                             | Setup/Get ID Token, playground/URLsBlockedAccessLogsLoop/[PmScripts]CreateLogs                                                                                                                                                                                                                       |
+| `utils`      | 10          | get_iso8601_timestamp, get_random_emails, get_unix_timestamp_with_ms, random_digits                      | AC-5717_PolicyV2 support Disable on/UpdatePolicyDisableAt/[UpdatePolicy]diablePolicy_UnixTimestamp, AC-5717_PolicyV2 support Disable on/CreatePolicyPolicyDisableAt/createPolicyV2_null, AC-5717_PolicyV2 support Disable on/CreatePolicyPolicyDisableAt/createPolicyV2_UnixTimestamp ... (10 total) |
+| `test_utils` | 136         | validate_resp_code, post_action_getPolicy_forFilters, print_user_policies, getAutomationTestDataLeftOver | MTK_GetUserEntryInfo/GetUserEntry, MTK_GetUserEntryInfo/ListPolicyV2, MTK_GetUserEntryInfo/GetPolicyV2 ... (136 total)                                                                                                                                                                               |
+| `meta_data`  | 2           | env_users                                                                                                | Setup/Get ID Token, playground/URLsBlockedAccessLogsLoop/[PmScripts]CreateLogs                                                                                                                                                                                                                       |
+| `meta_data`` | Defined     | `env_users()`                                                                                            | Folder Pre-request Script                                                                                                                                                                                                                                                                            |
 
 ---
 
@@ -901,6 +930,132 @@ When utilities are updated at the collection level, you may need to update your 
    ```
 
 3. Export and import the new environment file in Postman
+
+---
+
+## Loop Pattern with pm.sendRequest
+
+This section describes the pattern used in `URLsBlockedAccessLogsLoop` to execute multiple requests in a loop using `pm.sendRequest` within a pre-request script.
+
+### Pattern Overview
+
+The pattern uses a recursive function with `setTimeout` to create a loop that executes a specific action multiple times. This is useful for generating load or creating multiple log entries without running the entire collection runner multiple times.
+
+### Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant PreReq as "Pre-request Script"
+    participant LoopFunc as "loopWithWait (Recursive)"
+    participant Run as "runScript()"
+    participant Utils as "test_utils / auth_utils"
+    participant PM as "pm.sendRequest"
+    participant API as "External API"
+
+    PreReq->>PreReq: Define iterations & config
+    PreReq->>LoopFunc: Start Loop (i = iterations)
+    
+    loop Every 800ms
+        LoopFunc->>Run: Call runScript()
+        activate Run
+        
+        Run->>Run: Check Timestamp / Token
+        
+        Run->>Utils: Call Log Function (e.g., createAccessLogs)
+        activate Utils
+        
+        Utils->>PM: pm.sendRequest(payload)
+        activate PM
+        PM->>API: HTTP POST
+        API-->>PM: Response
+        PM-->>Utils: Callback (Validate 201)
+        deactivate PM
+        
+        Utils-->>Run: Return
+        deactivate Utils
+        
+        deactivate Run
+        
+        LoopFunc->>LoopFunc: Decrement i
+        LoopFunc->>LoopFunc: setTimeout(loopWithWait, 800)
+    end
+```
+
+### Implementation Details
+
+1.  **Configuration**: Define `iterations`, `es_index`, and the target log function (`esLogFunc`).
+2.  **Token Refresh**: A `refreshIDToken` function ensures the auth token is valid.
+3.  **Recursive Loop**: `loopWithWait(i)` uses `setTimeout` to schedule the next iteration, preventing blocking and allowing control over the rate.
+4.  **Execution**: `runScript()` performs the actual logic:
+    *   Checks if the token needs refresh (based on timestamp).
+    *   Calls the utility function (e.g., `test_utils.createAccessLogsForUrlBlockedLog`).
+5.  **Async Request**: The utility function uses `pm.sendRequest` to send the HTTP request asynchronously.
+
+### Code Example
+
+```javascript
+// 1. Configuration
+const iterations = 10;
+const esLogFunc = test_utils.createAccessLogsForUrlBlockedLog;
+
+// 2. Loop Definition
+(function loopWithWait(i) {
+  setTimeout(function() {
+    console.log(`${i} time(s)`);
+    runScript(); // 3. Action
+    i -= 1;
+    if (i >= 0) {
+        loopWithWait(i); // 4. Recursion
+    } 
+  }, 800)
+})(requests.length-1);
+
+// 5. Action Implementation
+function runScript() {
+    // ... token checks ...
+    esLogFunc({pm, es_index}); // Calls pm.sendRequest internally
+}
+```
+
+---
+
+---
+
+## Port Forwarding & Local Logging
+
+The collection includes specific requests (e.g., `CreateLogs(PortForward)`) designed to send log data to a local Elasticsearch instance for testing purposes.
+
+### Local Logging Flow
+
+This pattern allows developers to generate log traffic against a local stack or a port-forwarded remote stack.
+
+```mermaid
+sequenceDiagram
+    participant Script as Pre-request Script
+    participant Utils as utils
+    participant LocalES as "Local Elasticsearch (localhost:9200)"
+
+    Note over Script: Loop Pattern often used here
+
+    Script->>Utils: get_iso8601_timestamp()
+    Utils-->>Script: timestamp
+    
+    Script->>Script: Construct Log Payload
+    
+    Script->>LocalES: POST /_doc (JSON Log)
+    activate LocalES
+    LocalES-->>Script: 201 Created
+    deactivate LocalES
+```
+
+### Configuration
+
+These requests typically use:
+- **URL**: `http://localhost:9200/...`
+- **Headers**: `Content-Type: application/json`
+- **Body**: Raw JSON log message
+
+> **Note:** Ensure you have port forwarding enabled (e.g., `kubectl port-forward`) or a local Elasticsearch instance running before executing these requests.
 
 ---
 
